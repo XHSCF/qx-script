@@ -27,10 +27,6 @@ function parseJson(text) {
   }
 }
 
-/**
- * Pure JS SHA-1
- * returns hex string
- */
 function sha1(msg) {
   function rotateLeft(n, s) {
     return (n << s) | (n >>> (32 - s));
@@ -192,14 +188,19 @@ function fetchQX(options) {
       refractKey = updatedKey;
     }
 
-    if (resp.status === 200 && data.success === true) {
+    if (data.success === true) {
       const gain = typeof data.gain !== 'undefined' ? `，收益 ${data.gain}` : '';
       const current = typeof data.current !== 'undefined' ? `，当前 ${data.current}` : '';
       notify('NodeSeek 签到', '成功', `${data.message || '签到成功'}${gain}${current}`);
       return;
     }
 
-    if (resp.status === 200 && data.message) {
+    if (data.message && (data.message.includes('已完成签到') || data.message.includes('请勿重复操作'))) {
+      notify('NodeSeek 签到', '今日已签到', data.message);
+      return;
+    }
+
+    if (data.message) {
       notify('NodeSeek 签到', '返回消息', data.message);
       return;
     }
