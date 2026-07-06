@@ -72,24 +72,7 @@ function getCheckinPage() {
         return;
       }
 
-      /*
-       * 页面已经登录并签到时，会出现：
-       * 今日已签到
-       */
-      if (
-        html.includes("今日已签到") ||
-        html.includes("已签到")
-      ) {
-        const info = parseSignedInfo(html);
-
-        $notify(
-          "科学刀签到",
-          "今日已签到",
-          info || "今天已经完成签到，无需重复操作。"
-        );
-        $done();
-        return;
-      }
+     
 
       /*
        * 新版页面中：
