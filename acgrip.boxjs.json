@@ -1,0 +1,39 @@
+{
+  "id": "XHSCF.acgrip",
+  "name": "Anime字幕论坛",
+  "author": "XHSCF",
+  "repo": "https://github.com/XHSCF/qx-script",
+  "apps": [
+    {
+      "id": "XHSCF.acgrip.checkin",
+      "name": "Anime字幕论坛签到",
+      "author": "XHSCF",
+      "repo": "https://github.com/XHSCF/qx-script",
+      "script": "https://raw.githubusercontent.com/XHSCF/qx-script/main/acgrip_checkin.js",
+      "descs_html": [
+        "填写 Anime字幕论坛已登录账号的完整 Cookie。",
+        "签到脚本会自动获取 formhash，并选择“开心、不想填写”完成签到。",
+        "Cookie 失效后需要重新抓取并更新。"
+      ],
+      "keys": [
+        "acgrip_cookie"
+      ],
+      "settings": [
+        {
+          "id": "acgrip_cookie",
+          "name": "Anime字幕论坛 Cookie",
+          "val": "",
+          "type": "textarea",
+          "rows": 8,
+          "autoGrow": true,
+          "placeholder": "粘贴完整 Cookie，不要包含 Cookie: 这几个字",
+          "desc": "从 bbs.acgrip.com 已登录请求头中复制完整 Cookie。"
+        }
+      ],
+      "icons": [
+        "https://raw.githubusercontent.com/Orz-3/mini/master/Color/Anime.png",
+        "https://raw.githubusercontent.com/Orz-3/mini/master/Alpha/Anime.png"
+      ]
+    }
+  ]
+}
