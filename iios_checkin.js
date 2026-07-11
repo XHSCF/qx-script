@@ -1076,7 +1076,7 @@ function finish(title, message, detail) {
                     response.statusCode
                 }`,
             message,
-            "把完整 Logs 截图发回来"
+            ""
         );
     } else {
         finish(
