@@ -1,0 +1,44 @@
+{
+  "id": "XHSCF.nodeseek",
+  "name": "NodeSeek",
+  "author": "XHSCF",
+  "repo": "https://github.com/XHSCF/qx-script",
+  "apps": [
+    {
+      "id": "XHSCF.nodeseek.checkin",
+      "name": "NodeSeek签到",
+      "author": "XHSCF",
+      "repo": "https://github.com/XHSCF/qx-script",
+      "script": "https://raw.githubusercontent.com/XHSCF/qx-script/main/nodeseek_checkin.js",
+      "descs_html": [
+        "固定领取每日5个鸡腿。",
+        "填写NodeSeek已登录账号的完整Cookie。",
+        "脚本会自动计算refract-sign，并自动保存服务器更新的refract-key。"
+      ],
+      "keys": [
+        "nodeseek_cookie",
+        "nodeseek_refract_key"
+      ],
+      "settings": [
+        {
+          "id": "nodeseek_cookie",
+          "name": "NodeSeek Cookie",
+          "val": "",
+          "type": "textarea",
+          "rows": 8,
+          "autoGrow": true,
+          "placeholder": "粘贴完整Cookie，不要包含Cookie:字样",
+          "desc": "从www.nodeseek.com已登录请求头中复制完整Cookie。"
+        },
+        {
+          "id": "nodeseek_refract_key",
+          "name": "Refract Key",
+          "val": "",
+          "type": "text",
+          "placeholder": "通常留空即可",
+          "desc": "脚本会自动维护。首次可留空。"
+        }
+      ]
+    }
+  ]
+}
