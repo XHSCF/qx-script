@@ -7,6 +7,8 @@
  * Refract Key 键名：nodeseek_refract_key
  */
 
+const SCRIPT_VERSION = "2026.07.11-v3";
+console.log(`[NodeSeek] 脚本版本：${SCRIPT_VERSION}`);
 const COOKIE_KEY = "nodeseek_cookie";
 const REFRACT_KEY_STORE = "nodeseek_refract_key";
 
@@ -175,12 +177,7 @@ function signIn(refractKey, retryCount) {
           : responseBody;
 
       if (
-  message.includes("已经签到") ||
-  message.includes("今日已签到") ||
-  message.includes("今天已完成签到") ||
-  message.includes("已完成签到") ||
-  message.includes("重复签到") ||
-  message.includes("请勿重复操作")
+  /已经签到|今日已签到|已完成签到|重复签到|请勿重复操作/.test(message)
 ) {
   finish(
     "今日已签到",
