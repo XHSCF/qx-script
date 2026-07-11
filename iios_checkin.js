@@ -924,8 +924,8 @@ function finish(title, message, detail) {
         AUTHORIZATION.includes("在这里粘贴")
     ) {
         throw new Error(
-            "请先把脚本顶部的 AUTHORIZATION 替换为抓包里的完整值"
-        );
+    "未获取到登录凭证，请先打开 iios.fun 登录并进入获取积分页面"
+);
     }
 
     console.log("1/4 下载并加载 WASM……");
@@ -1089,6 +1089,6 @@ function finish(title, message, detail) {
     finish(
         "运行失败",
         formatError(error),
-        "把完整 Logs 截图发回来"
+        ""
     );
 });
