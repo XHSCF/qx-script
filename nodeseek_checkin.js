@@ -175,16 +175,19 @@ function signIn(refractKey, retryCount) {
           : responseBody;
 
       if (
-        message.includes("已经签到") ||
-        message.includes("今日已签到") ||
-        message.includes("重复签到")
-      ) {
-        finish(
-          "今日已签到",
-          message
-        );
-        return;
-      }
+  message.includes("已经签到") ||
+  message.includes("今日已签到") ||
+  message.includes("今天已完成签到") ||
+  message.includes("已完成签到") ||
+  message.includes("重复签到") ||
+  message.includes("请勿重复操作")
+) {
+  finish(
+    "今日已签到",
+    message
+  );
+  return;
+}
 
       finish(
         "签到结果未知",
