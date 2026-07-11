@@ -1,5 +1,0 @@
-const COOKIE = 'session=c084a792e6a88a63bdd8e0a4aa83aff4; smac=1775919356-ixlYTCPF6sRl74Za_8OCT2H-MBt_yFvMbOVEGP_jcXw; cf_clearance=ycZyv6H48Eb.neTUXUBAvvbsJRxUId5Or5PMB_gn65w-1775919335-1.2.1.1-fyrIj7oiR0aXhqPtDVYSFRM2XvXaZ3pC5QbIeppgK3Bq6HV9OuRQwyZCpNr0kkRldAn6VFNfpQ9DhGVtV0fOVNQ79AMJW75vgu3RyDxpaW3gcTRAVcYA1pKucHxRRH8qGyF72IfjwAxZSyX3Dbgp9zP0pTQSXkQIGazf0BYBAr5r_Iz3w1fib9P4.KL_15a78OI2HeO0Ki45OwzfB_5lPPAkFLk0OaaCLuJ_KwIuCwCx_LDtvtWvR_odQ2QilwcnAV_O.yl2JJDrj0dNGXe7EhIWoCTN87xnaoETeicTkyca4D5rEkXh1EnLp4UjYa3CbBLuXambrkfCgAboT3DZ.g; fog=2e35be19eee030ad642e7ff2e18c1571fcdf77828f0a76e23e99cd40e293057d; hmti_=1775913201-ZNvanE7NyqkTzfu3T1V3HhTxr3uy0hNa7BCE34Tg1c8m; colorscheme=light';
-
-const ok = $prefs.setValueForKey(COOKIE, 'nodeseek_cookie');
-$notify('NodeSeek Cookie', ok ? '保存成功' : '保存失败', '');
-$done();
