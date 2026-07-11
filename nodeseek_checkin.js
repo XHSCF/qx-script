@@ -13,7 +13,7 @@ const COOKIE_KEY = "nodeseek_cookie";
 const REFRACT_KEY_STORE = "nodeseek_refract_key";
 
 const URL =
-  "https://www.nodeseek.com/api/attendance?random=false";
+  "https://www.nodeseek.com/api/attendance?random=true";
 
 const REFRACT_VERSION = "0.3.34";
 
