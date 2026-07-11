@@ -68,12 +68,7 @@ function signIn(refractKey, retryCount) {
   console.log(
     `[NodeSeek] 第 ${retryCount + 1} 次请求`
   );
-  console.log(
-    `[NodeSeek] refract-key：${refractKey}`
-  );
-  console.log(
-    `[NodeSeek] refract-sign：${refractSign}`
-  );
+
 
   const request = {
     url: URL,
