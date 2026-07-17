@@ -1,0 +1,19 @@
+# NAME: 苹果 APNs 推送
+# DESC: 让苹果推送连接通过指定代理节点，添加后建议开关飞行模式
+# SOURCE: Apple 官方 APNs 网络范围
+
+# > APNs 域名
+HOST-SUFFIX,push.apple.com
+
+# > Apple 官方 APNs IPv4 网段
+IP-CIDR,17.249.0.0/16,no-resolve
+IP-CIDR,17.252.0.0/16,no-resolve
+IP-CIDR,17.57.144.0/22,no-resolve
+IP-CIDR,17.188.128.0/18,no-resolve
+IP-CIDR,17.188.20.0/23,no-resolve
+
+# > Apple 官方 APNs IPv6 网段
+IP6-CIDR,2620:149:a44::/48,no-resolve
+IP6-CIDR,2403:300:a42::/48,no-resolve
+IP6-CIDR,2403:300:a51::/48,no-resolve
+IP6-CIDR,2a01:b740:a42::/48,no-resolve
