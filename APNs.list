@@ -1,19 +1,19 @@
 # NAME: 苹果 APNs 推送
-# DESC: 让苹果推送连接通过指定代理节点，添加后建议开关飞行模式
-# SOURCE: Apple 官方 APNs 网络范围
+# DESC: Quantumult X 原生分流规则，导入后使用策略偏好指定节点
+# NOTE: 添加或更新后建议开关飞行模式，重新建立 APNs 连接
 
 # > APNs 域名
-HOST-SUFFIX,push.apple.com
+host-suffix, push.apple.com, direct
 
-# > Apple 官方 APNs IPv4 网段
-IP-CIDR,17.249.0.0/16,no-resolve
-IP-CIDR,17.252.0.0/16,no-resolve
-IP-CIDR,17.57.144.0/22,no-resolve
-IP-CIDR,17.188.128.0/18,no-resolve
-IP-CIDR,17.188.20.0/23,no-resolve
+# > Apple APNs IPv4 网段
+ip-cidr, 17.249.0.0/16, direct
+ip-cidr, 17.252.0.0/16, direct
+ip-cidr, 17.57.144.0/22, direct
+ip-cidr, 17.188.128.0/18, direct
+ip-cidr, 17.188.20.0/23, direct
 
-# > Apple 官方 APNs IPv6 网段
-IP6-CIDR,2620:149:a44::/48,no-resolve
-IP6-CIDR,2403:300:a42::/48,no-resolve
-IP6-CIDR,2403:300:a51::/48,no-resolve
-IP6-CIDR,2a01:b740:a42::/48,no-resolve
+# > Apple APNs IPv6 网段
+ip6-cidr, 2620:149:a44::/48, direct
+ip6-cidr, 2403:300:a42::/48, direct
+ip6-cidr, 2403:300:a51::/48, direct
+ip6-cidr, 2a01:b740:a42::/48, direct
