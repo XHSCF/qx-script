@@ -119,6 +119,51 @@ async function testNodeSeekRetryAndRandomMode() {
   );
 }
 
+async function testNodeSeekAlreadySignedHttp500() {
+  const chineseResult = await runQxScript("nodeseek_checkin.js", {
+    prefs: { nodeseek_cookie: "x=1" },
+    responses: [
+      {
+        statusCode: 500,
+        body: JSON.stringify({
+          success: false,
+          message: "今天已经签到过了"
+        }),
+        headers: {}
+      }
+    ]
+  });
+
+  assert(
+    chineseResult.calls.length === 1,
+    "NodeSeek 已签到的 HTTP 500 响应不应重试"
+  );
+  assert(
+    chineseResult.notifications[0][1] === "今日已签到",
+    "NodeSeek 应将 HTTP 500 中的已签到正文识别为今日已签到"
+  );
+
+  const englishResult = await runQxScript("nodeseek_checkin.js", {
+    prefs: { nodeseek_cookie: "x=1" },
+    responses: [
+      {
+        statusCode: 500,
+        body: JSON.stringify({
+          success: false,
+          message: "You have already attended today"
+        }),
+        headers: {}
+      }
+    ]
+  });
+
+  assert(
+    englishResult.calls.length === 1 &&
+      englishResult.notifications[0][1] === "今日已签到",
+    "NodeSeek 应识别英文已签到提示且不重试"
+  );
+}
+
 async function testKxdaoAlreadySignedPage() {
   const html =
     "连续 <strong>3</strong> 天 今日第 <strong>9</strong> 位 +<strong>2</strong> 积分";
@@ -240,6 +285,7 @@ function testIiosBase64CacheCodec() {
   testStaticFiles();
   testIiosBase64CacheCodec();
   await testNodeSeekRetryAndRandomMode();
+  await testNodeSeekAlreadySignedHttp500();
   await testKxdaoAlreadySignedPage();
   await testAcgripDynamicFormhash();
   await testIiosCaptureHostAllowlist();

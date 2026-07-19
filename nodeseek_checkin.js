@@ -7,7 +7,7 @@
  * Refract Key 键名：nodeseek_refract_key
  */
 
-const SCRIPT_VERSION = "2026.07.19-v4";
+const SCRIPT_VERSION = "2026.07.19-v5";
 console.log(`[NodeSeek] 脚本版本：${SCRIPT_VERSION}`);
 const COOKIE_KEY = "nodeseek_cookie";
 const REFRACT_KEY_STORE = "nodeseek_refract_key";
@@ -139,20 +139,15 @@ function signIn(refractKey, retryCount) {
         return;
       }
 
-      if (status < 200 || status >= 300) {
+      const result = parseResponseBody(responseBody);
+      const message = getResponseMessage(result, responseBody);
+
+      if (isAlreadySignedMessage(message)) {
         finish(
-          "服务器响应异常",
-          `HTTP ${status}，请稍后再试。`
+          "今日已签到",
+          sanitizeText(message, 160)
         );
         return;
-      }
-
-      let result;
-
-      try {
-        result = JSON.parse(responseBody);
-      } catch (_) {
-        result = null;
       }
 
       if (
@@ -176,17 +171,10 @@ function signIn(refractKey, retryCount) {
         return;
       }
 
-      const message =
-        result && result.message
-          ? String(result.message)
-          : responseBody;
-
-      if (
-        /已经签到|今日已签到|已完成签到|重复签到|请勿重复操作/.test(message)
-      ) {
+      if (status < 200 || status >= 300) {
         finish(
-          "今日已签到",
-          sanitizeText(message, 160)
+          "服务器响应异常",
+          `HTTP ${status}，请稍后再试。`
         );
         return;
       }
@@ -213,6 +201,10 @@ function fetchWithRetry(request, attempt) {
     response => {
       const status = Number(response.statusCode || 0);
 
+      if (isAlreadySignedResponse(response)) {
+        return response;
+      }
+
       if (
         currentAttempt < MAX_NETWORK_RETRIES &&
         (status === 429 || status >= 500)
@@ -231,6 +223,47 @@ function fetchWithRetry(request, attempt) {
 
       return Promise.reject(error);
     }
+  );
+}
+
+function parseResponseBody(body) {
+  try {
+    return JSON.parse(String(body || ""));
+  } catch (_) {
+    return null;
+  }
+}
+
+function getResponseMessage(result, body) {
+  if (result) {
+    const message =
+      result.message ||
+      result.msg ||
+      result.error;
+
+    if (message) {
+      return String(message);
+    }
+  }
+
+  return String(body || "");
+}
+
+function isAlreadySignedMessage(message) {
+  return (
+    /已经签到|今日已签到|今天已签到|已完成签到|重复签到|请勿重复操作/.test(message) ||
+    /already\s+(?:checked|signed)(?:\s+in)?|already.*(?:attend(?:ed|ance)|check-?in)/i.test(message)
+  );
+}
+
+function isAlreadySignedResponse(response) {
+  const body = response && response.body
+    ? String(response.body)
+    : "";
+  const result = parseResponseBody(body);
+
+  return isAlreadySignedMessage(
+    getResponseMessage(result, body)
   );
 }
 
