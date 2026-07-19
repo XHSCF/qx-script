@@ -11,7 +11,11 @@
  * kxdao_cookie
  */
 
+const SCRIPT_VERSION = "2026.07.19-v2";
+console.log(`[科学刀] 脚本版本：${SCRIPT_VERSION}`);
 const COOKIE_KEY = "kxdao_cookie";
+const MAX_NETWORK_RETRIES = 1;
+const RETRY_BASE_DELAY_MS = 1200;
 
 const PAGE_URL =
   "https://www.kxdao.net/aigeo_sign-checkin.html";
@@ -25,14 +29,13 @@ const USER_AGENT =
   "Version/26.5 Mobile/15E148 Safari/604.1";
 
 const cookie = $prefs.valueForKey(COOKIE_KEY);
+let finished = false;
 
 if (!cookie) {
-  $notify(
-    "科学刀签到",
+  finish(
     "缺少 Cookie",
     "请先在 BoxJS 填写科学刀完整 Cookie。"
   );
-  $done();
 } else {
   getCheckinPage();
 }
@@ -55,7 +58,7 @@ function getCheckinPage() {
     }
   };
 
-  $task.fetch(request).then(
+  fetchWithRetry(request, "签到页").then(
     response => {
       const status = response.statusCode;
       const html = response.body || "";
@@ -63,16 +66,34 @@ function getCheckinPage() {
       console.log(`[科学刀] 签到页面状态码：${status}`);
 
       if (status === 401 || status === 403) {
-        $notify(
-          "科学刀签到",
+        finish(
           "登录状态异常",
           `页面返回 ${status}，Cookie 可能已经失效。`
         );
-        $done();
         return;
       }
 
-     
+      if (status < 200 || status >= 300) {
+        finish(
+          "签到页响应异常",
+          `HTTP ${status}，请稍后再试。`
+        );
+        return;
+      }
+
+      const signedInfo = parseSignedInfo(html);
+
+      if (
+        signedInfo ||
+        html.includes("今日已签到") ||
+        html.includes("今天已签到")
+      ) {
+        finish(
+          "今日已签到",
+          signedInfo || "今天已经完成签到，无需重复操作。"
+        );
+        return;
+      }
 
       /*
        * 新版页面中：
@@ -91,35 +112,28 @@ function getCheckinPage() {
           html.includes("登录") &&
           !html.includes("快速静默签到");
 
-        $notify(
-          "科学刀签到",
+        finish(
           loginExpired ? "Cookie 可能失效" : "获取参数失败",
           loginExpired
             ? "签到页面没有保持登录，请重新抓取 Cookie。"
             : "未在签到页面找到动态 formhash。"
         );
 
-        console.log(
-          `[科学刀] 页面部分内容：${html.slice(0, 500)}`
-        );
-
-        $done();
+        console.log(`[科学刀] 未找到 formhash，页面长度：${html.length}`);
         return;
       }
 
       const formhash = formhashMatch[1];
 
-      console.log(`[科学刀] 已取得 formhash：${formhash}`);
+      console.log("[科学刀] 已取得动态 formhash");
 
       submitCheckin(formhash);
     },
     error => {
-      $notify(
-        "科学刀签到",
+      finish(
         "页面请求失败",
-        stringifyError(error)
+        sanitizeText(stringifyError(error), 160)
       );
-      $done();
     }
   );
 }
@@ -145,21 +159,19 @@ function submitCheckin(formhash) {
       `&source=checkin_page`
   };
 
-  $task.fetch(request).then(
+  fetchWithRetry(request, "签到接口").then(
     response => {
       const status = response.statusCode;
       const body = response.body || "";
 
       console.log(`[科学刀] 签到状态码：${status}`);
-      console.log(`[科学刀] 签到返回：${body}`);
+      console.log(`[科学刀] 签到响应长度：${body.length}`);
 
       if (status === 401 || status === 403) {
-        $notify(
-          "科学刀签到",
+        finish(
           "登录状态异常",
           `接口返回 ${status}，Cookie 可能失效。`
         );
-        $done();
         return;
       }
 
@@ -168,12 +180,12 @@ function submitCheckin(formhash) {
       try {
         data = JSON.parse(body);
       } catch (error) {
-        $notify(
-          "科学刀签到",
+        finish(
           "返回格式异常",
-          body.slice(0, 200) || "接口没有返回内容。"
+          status < 200 || status >= 300
+            ? `HTTP ${status}，服务器没有返回可识别内容。`
+            : sanitizeText(body, 200) || "接口没有返回内容。"
         );
-        $done();
         return;
       }
 
@@ -210,8 +222,7 @@ function submitCheckin(formhash) {
           milestone
         ].filter(Boolean);
 
-        $notify(
-          "科学刀签到",
+        finish(
           "签到成功",
           details.join("，") || "新版签到成功。"
         );
@@ -225,22 +236,17 @@ function submitCheckin(formhash) {
           String(message).includes("已签到") ||
           String(message).includes("重复");
 
-        $notify(
-          "科学刀签到",
+        finish(
           alreadySigned ? "今日已签到" : "签到失败",
-          String(message)
+          sanitizeText(message, 180)
         );
       }
-
-      $done();
     },
     error => {
-      $notify(
-        "科学刀签到",
+      finish(
         "接口请求失败",
-        stringifyError(error)
+        sanitizeText(stringifyError(error), 160)
       );
-      $done();
     }
   );
 }
@@ -274,4 +280,67 @@ function stringifyError(error) {
   } catch (_) {
     return String(error || "未知错误");
   }
+}
+
+function fetchWithRetry(request, label, attempt) {
+  const currentAttempt = attempt || 0;
+
+  return $task.fetch(request).then(
+    response => {
+      const status = Number(response.statusCode || 0);
+
+      if (
+        currentAttempt < MAX_NETWORK_RETRIES &&
+        (status === 429 || status >= 500)
+      ) {
+        return waitBeforeRetry(label, currentAttempt, `HTTP ${status}`)
+          .then(() => fetchWithRetry(request, label, currentAttempt + 1));
+      }
+
+      return response;
+    },
+    error => {
+      if (currentAttempt < MAX_NETWORK_RETRIES) {
+        return waitBeforeRetry(label, currentAttempt, "网络错误")
+          .then(() => fetchWithRetry(request, label, currentAttempt + 1));
+      }
+
+      return Promise.reject(error);
+    }
+  );
+}
+
+function waitBeforeRetry(label, attempt, reason) {
+  const delay =
+    RETRY_BASE_DELAY_MS * (attempt + 1) +
+    Math.floor(Math.random() * 400);
+
+  console.log(
+    `[科学刀] ${label}${reason}，${delay}ms 后重试一次`
+  );
+
+  return new Promise(resolve => setTimeout(resolve, delay));
+}
+
+function sanitizeText(value, maxLength) {
+  return String(value || "")
+    .replace(/Basic\s+[A-Za-z0-9+/=._-]+/gi, "Basic <已隐藏>")
+    .replace(/(cookie|authorization|token)(\s*[:=]\s*)[^\s,;]+/gi, "$1$2<已隐藏>")
+    .slice(0, maxLength || 200);
+}
+
+function finish(subtitle, message) {
+  if (finished) {
+    return;
+  }
+
+  finished = true;
+
+  $notify(
+    "科学刀签到",
+    subtitle,
+    message
+  );
+
+  $done();
 }

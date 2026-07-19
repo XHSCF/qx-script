@@ -11,7 +11,7 @@
       "repo": "https://github.com/XHSCF/qx-script",
       "script": "https://raw.githubusercontent.com/XHSCF/qx-script/main/nodeseek_checkin.js",
       "descs_html": [
-        "固定领取每日5个鸡腿。",
+        "使用随机模式领取每日鸡腿。",
         "填写NodeSeek已登录账号的完整Cookie。",
         "脚本会自动计算refract-sign，并自动保存服务器更新的refract-key。"
       ],

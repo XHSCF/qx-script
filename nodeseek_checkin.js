@@ -2,12 +2,12 @@
  * NodeSeek 自动签到
  * Quantumult X
  *
- * random=false：固定领取 5 个鸡腿
+ * random=true：使用随机鸡腿签到模式
  * Cookie 键名：nodeseek_cookie
  * Refract Key 键名：nodeseek_refract_key
  */
 
-const SCRIPT_VERSION = "2026.07.11-v3";
+const SCRIPT_VERSION = "2026.07.19-v4";
 console.log(`[NodeSeek] 脚本版本：${SCRIPT_VERSION}`);
 const COOKIE_KEY = "nodeseek_cookie";
 const REFRACT_KEY_STORE = "nodeseek_refract_key";
@@ -21,20 +21,22 @@ const REFRACT_VERSION = "0.3.34";
 // 若服务器返回 refract-key-update，脚本会自动保存新 key。
 const DEFAULT_REFRACT_KEY = "CHICZkKViFoZmVbIH1Y6";
 
+const MAX_NETWORK_RETRIES = 1;
+const RETRY_BASE_DELAY_MS = 1200;
+
 const USER_AGENT =
   "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) " +
   "AppleWebKit/605.1.15 (KHTML, like Gecko) " +
   "Version/26.5 Mobile/15E148 Safari/604.1";
 
 const cookie = $prefs.valueForKey(COOKIE_KEY);
+let finished = false;
 
 if (!cookie) {
-  $notify(
-    "NodeSeek 签到",
+  finish(
     "缺少 Cookie",
     `请先在 BoxJS 中填写 ${COOKIE_KEY}`
   );
-  $done();
 } else {
   const savedKey =
     $prefs.valueForKey(REFRACT_KEY_STORE) ||
@@ -88,7 +90,7 @@ function signIn(refractKey, retryCount) {
     body: body,
   };
 
-  $task.fetch(request).then(
+  fetchWithRetry(request).then(
     (response) => {
       const status = response.statusCode;
       const responseBody = response.body || "";
@@ -100,7 +102,7 @@ function signIn(refractKey, retryCount) {
         `[NodeSeek] 状态码：${status}`
       );
       console.log(
-        `[NodeSeek] 返回：${responseBody}`
+        `[NodeSeek] 响应长度：${responseBody.length}`
       );
 
       const updatedKey =
@@ -111,7 +113,7 @@ function signIn(refractKey, retryCount) {
         updatedKey !== refractKey
       ) {
         console.log(
-          `[NodeSeek] 收到新 refract-key：${updatedKey}`
+          `[NodeSeek] 收到新的 refract-key（长度 ${String(updatedKey).length}）`
         );
 
         $prefs.setValueForKey(
@@ -133,6 +135,14 @@ function signIn(refractKey, retryCount) {
         finish(
           "登录状态失效",
           `服务器返回 ${status}，请重新获取 Cookie。`
+        );
+        return;
+      }
+
+      if (status < 200 || status >= 300) {
+        finish(
+          "服务器响应异常",
+          `HTTP ${status}，请稍后再试。`
         );
         return;
       }
@@ -172,28 +182,75 @@ function signIn(refractKey, retryCount) {
           : responseBody;
 
       if (
-  /已经签到|今日已签到|已完成签到|重复签到|请勿重复操作/.test(message)
-) {
-  finish(
-    "今日已签到",
-    message
-  );
-  return;
-}
+        /已经签到|今日已签到|已完成签到|重复签到|请勿重复操作/.test(message)
+      ) {
+        finish(
+          "今日已签到",
+          sanitizeText(message, 160)
+        );
+        return;
+      }
 
       finish(
         "签到结果未知",
-        message ||
+        sanitizeText(message, 160) ||
           `HTTP ${status}，服务器没有返回可识别结果。`
       );
     },
     (error) => {
       finish(
         "请求失败",
-        stringifyError(error)
+        sanitizeText(stringifyError(error), 160)
       );
     }
   );
+}
+
+function fetchWithRetry(request, attempt) {
+  const currentAttempt = attempt || 0;
+
+  return $task.fetch(request).then(
+    response => {
+      const status = Number(response.statusCode || 0);
+
+      if (
+        currentAttempt < MAX_NETWORK_RETRIES &&
+        (status === 429 || status >= 500)
+      ) {
+        return waitBeforeRetry(currentAttempt, `HTTP ${status}`)
+          .then(() => fetchWithRetry(request, currentAttempt + 1));
+      }
+
+      return response;
+    },
+    error => {
+      if (currentAttempt < MAX_NETWORK_RETRIES) {
+        return waitBeforeRetry(currentAttempt, "网络错误")
+          .then(() => fetchWithRetry(request, currentAttempt + 1));
+      }
+
+      return Promise.reject(error);
+    }
+  );
+}
+
+function waitBeforeRetry(attempt, reason) {
+  const delay =
+    RETRY_BASE_DELAY_MS * (attempt + 1) +
+    Math.floor(Math.random() * 400);
+
+  console.log(
+    `[NodeSeek] ${reason}，${delay}ms 后重试一次`
+  );
+
+  return new Promise(resolve => setTimeout(resolve, delay));
+}
+
+function sanitizeText(value, maxLength) {
+  return String(value || "")
+    .replace(/Basic\s+[A-Za-z0-9+/=._-]+/gi, "Basic <已隐藏>")
+    .replace(/(cookie|authorization|token)(\s*[:=]\s*)[^\s,;]+/gi, "$1$2<已隐藏>")
+    .slice(0, maxLength || 200);
 }
 
 function normalizeHeaders(headers) {
@@ -223,6 +280,12 @@ function stringifyError(error) {
 }
 
 function finish(subtitle, message) {
+  if (finished) {
+    return;
+  }
+
+  finished = true;
+
   $notify(
     "NodeSeek 签到",
     subtitle,

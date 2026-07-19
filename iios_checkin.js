@@ -1,14 +1,22 @@
+const SCRIPT_VERSION = "2026.07.19-v2";
+console.log(`[iios] 签到脚本版本：${SCRIPT_VERSION}`);
+
 const AUTHORIZATION =
       $prefs.valueForKey("iios_auth") || "",
-    COOKIE = "",
     WASM_URL = "https://www.iios.fun/static/media/web_wasm_bg.534e8f19399f44e1496d.wasm",
+    WASM_CACHE_KEY = "iios_wasm_cache_v1",
+    EXPECTED_WASM_SHA256 = "6f1fad5a0431317b60edfdca79080019df7459914a263d4dd47e3d165ae951a2",
     API_URL = "https://www.iios.fun/api/task",
     UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.5 Mobile/15E148 Safari/604.1";
+
+const MAX_NETWORK_RETRIES = 1;
+const RETRY_BASE_DELAY_MS = 1200;
 
 let wasm,
     WASM_VECTOR_LEN = 0,
     cachedUint8Memory0 = null,
-    cachedDataViewMemory0 = null;
+    cachedDataViewMemory0 = null,
+    finished = false;
 
 const cachedTextDecoder = new TextDecoder("utf-8", {
     ignoreBOM: true,
@@ -824,30 +832,50 @@ function toUint8Array(bodyBytes) {
 }
 
 async function loadWasm() {
-    const response = await $task.fetch({
-        url: WASM_URL,
-        method: "GET",
-        headers: {
-            Accept: "application/wasm,*/*"
-        }
-    });
+    let bytes = null;
+    let downloadError = "";
 
-    if (
-        response.statusCode !== 200 ||
-        !response.bodyBytes
-    ) {
-        throw new Error(
-            `WASM 下载失败：HTTP ${
-                response.statusCode
-            }，bodyBytes=${
-                typeof response.bodyBytes
-            }`
+    try {
+        const response = await fetchWithRetry({
+            url: WASM_URL,
+            method: "GET",
+            headers: {
+                Accept: "application/wasm,*/*"
+            }
+        }, "WASM 下载");
+
+        if (
+            response.statusCode !== 200 ||
+            !response.bodyBytes
+        ) {
+            throw new Error(
+                `HTTP ${response.statusCode || 0}`
+            );
+        }
+
+        bytes = toUint8Array(response.bodyBytes);
+        await verifyWasm(bytes);
+        saveWasmCache(bytes);
+        console.log(
+            `[iios] WASM 在线校验通过，大小 ${bytes.byteLength} 字节`
+        );
+    } catch (error) {
+        downloadError = sanitizeText(formatError(error), 180);
+        console.log(
+            `[iios] 在线 WASM 不可用：${downloadError}`
+        );
+        bytes = await loadWasmCache();
+
+        if (!bytes) {
+            throw new Error(
+                `WASM 下载或校验失败，且没有有效缓存：${downloadError}`
+            );
+        }
+
+        console.log(
+            `[iios] 已使用本地校验缓存，大小 ${bytes.byteLength} 字节`
         );
     }
-
-    const bytes = toUint8Array(
-        response.bodyBytes
-    );
 
     const result =
         await WebAssembly.instantiate(
@@ -859,6 +887,135 @@ async function loadWasm() {
 
     cachedUint8Memory0 = null;
     cachedDataViewMemory0 = null;
+}
+
+async function verifyWasm(bytes) {
+    const actualHash = await sha256Hex(bytes);
+
+    if (actualHash !== EXPECTED_WASM_SHA256) {
+        throw new Error(
+            `WASM SHA-256 不匹配（实际 ${actualHash.slice(0, 12)}…）`
+        );
+    }
+}
+
+async function sha256Hex(bytes) {
+    if (
+        typeof crypto === "undefined" ||
+        !crypto.subtle ||
+        typeof crypto.subtle.digest !== "function"
+    ) {
+        throw new Error("当前 Quantumult X 环境不支持 SHA-256 校验");
+    }
+
+    const view = bytes.buffer.slice(
+        bytes.byteOffset,
+        bytes.byteOffset + bytes.byteLength
+    );
+    const digest = await crypto.subtle.digest("SHA-256", view);
+
+    return Array.from(new Uint8Array(digest))
+        .map(value => value.toString(16).padStart(2, "0"))
+        .join("");
+}
+
+function saveWasmCache(bytes) {
+    try {
+        const encoded = bytesToBase64(bytes);
+        const saved = $prefs.setValueForKey(
+            encoded,
+            WASM_CACHE_KEY
+        );
+
+        if (!saved) {
+            console.log("[iios] WASM 缓存写入失败，本次仍可继续运行");
+        }
+    } catch (error) {
+        console.log(
+            `[iios] WASM 缓存写入异常：${sanitizeText(formatError(error), 120)}`
+        );
+    }
+}
+
+async function loadWasmCache() {
+    const encoded =
+        $prefs.valueForKey(WASM_CACHE_KEY) || "";
+
+    if (!encoded) {
+        return null;
+    }
+
+    try {
+        const bytes = base64ToBytes(encoded);
+        await verifyWasm(bytes);
+        return bytes;
+    } catch (error) {
+        console.log(
+            `[iios] 本地 WASM 缓存无效：${sanitizeText(formatError(error), 120)}`
+        );
+        return null;
+    }
+}
+
+function bytesToBase64(bytes) {
+    const alphabet =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let output = "";
+
+    for (let index = 0; index < bytes.length; index += 3) {
+        const first = bytes[index];
+        const hasSecond = index + 1 < bytes.length;
+        const hasThird = index + 2 < bytes.length;
+        const second = hasSecond ? bytes[index + 1] : 0;
+        const third = hasThird ? bytes[index + 2] : 0;
+        const value =
+            (first << 16) |
+            (second << 8) |
+            third;
+
+        output += alphabet[(value >>> 18) & 63];
+        output += alphabet[(value >>> 12) & 63];
+        output += hasSecond
+            ? alphabet[(value >>> 6) & 63]
+            : "=";
+        output += hasThird
+            ? alphabet[value & 63]
+            : "=";
+    }
+
+    return output;
+}
+
+function base64ToBytes(encoded) {
+    const alphabet =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    const clean = String(encoded || "")
+        .replace(/\s+/g, "")
+        .replace(/=+$/, "");
+    const output = [];
+    let buffer = 0;
+    let bits = 0;
+
+    for (let index = 0; index < clean.length; index++) {
+        const value = alphabet.indexOf(clean[index]);
+
+        if (value < 0) {
+            throw new Error("WASM 缓存不是有效的 Base64 数据");
+        }
+
+        buffer = (buffer << 6) | value;
+        bits += 6;
+
+        if (bits >= 8) {
+            bits -= 8;
+            output.push((buffer >>> bits) & 0xff);
+            buffer &= bits === 0
+                ? 0
+                : (1 << bits) - 1;
+        }
+    }
+
+    return new Uint8Array(output);
 }
 
 async function wasmEncrypt(config) {
@@ -886,6 +1043,59 @@ function normalizeHeaders(headers) {
     return output;
 }
 
+async function fetchWithRetry(request, label) {
+    let lastError = null;
+
+    for (
+        let attempt = 0;
+        attempt <= MAX_NETWORK_RETRIES;
+        attempt++
+    ) {
+        try {
+            const response = await $task.fetch(request);
+            const status = Number(response.statusCode || 0);
+
+            if (
+                attempt < MAX_NETWORK_RETRIES &&
+                (status === 429 || status >= 500)
+            ) {
+                await waitBeforeRetry(label, attempt, `HTTP ${status}`);
+                continue;
+            }
+
+            return response;
+        } catch (error) {
+            lastError = error;
+
+            if (attempt < MAX_NETWORK_RETRIES) {
+                await waitBeforeRetry(label, attempt, "网络错误");
+                continue;
+            }
+        }
+    }
+
+    throw lastError || new Error(`${label}失败`);
+}
+
+function waitBeforeRetry(label, attempt, reason) {
+    const delay =
+        RETRY_BASE_DELAY_MS * (attempt + 1) +
+        Math.floor(Math.random() * 400);
+
+    console.log(
+        `[iios] ${label}${reason}，${delay}ms 后重试一次`
+    );
+
+    return new Promise(resolve => setTimeout(resolve, delay));
+}
+
+function sanitizeText(value, maxLength) {
+    return String(value || "")
+        .replace(/Basic\s+[A-Za-z0-9+/=._-]+/gi, "Basic <已隐藏>")
+        .replace(/(cookie|authorization|token)(\s*[:=]\s*)[^\s,;]+/gi, "$1$2<已隐藏>")
+        .slice(0, maxLength || 200);
+}
+
 function formatError(error) {
     if (!error) {
         return "未知错误";
@@ -899,6 +1109,12 @@ function formatError(error) {
 }
 
 function finish(title, message, detail) {
+    if (finished) {
+        return;
+    }
+
+    finished = true;
+
     const text = [
         title,
         message,
@@ -920,7 +1136,7 @@ function finish(title, message, detail) {
 
 (async () => {
     if (
-        !AUTHORIZATION.startsWith("Basic ") ||
+        !/^Basic\s+\S+/i.test(AUTHORIZATION.trim()) ||
         AUTHORIZATION.includes("在这里粘贴")
     ) {
         throw new Error(
@@ -963,22 +1179,12 @@ function finish(title, message, detail) {
         !encrypted.d
     ) {
         throw new Error(
-            `WASM 输出异常：${
-                JSON.stringify(encrypted)
-            }`
+            "WASM 输出异常：缺少签名或加密请求体"
         );
     }
 
     console.log(
-        `X-Timestamp: ${timestamp}`
-    );
-
-    console.log(
-        `X-Signature: ${encrypted.s}`
-    );
-
-    console.log(
-        `加密请求体: ${encrypted.d}`
+        `[iios] 已生成签名和加密请求体（长度 ${String(encrypted.d).length}）`
     );
 
     console.log("3/4 提交签到请求……");
@@ -995,24 +1201,29 @@ function finish(title, message, detail) {
         "User-Agent": UA
     };
 
-    if (COOKIE.trim()) {
-        requestHeaders.Cookie = COOKIE.trim();
-    }
-
-    const response = await $task.fetch({
+    const response = await fetchWithRetry({
         url: API_URL,
         method: "POST",
         headers: requestHeaders,
         body: encrypted.d
-    });
+    }, "签到接口");
 
     console.log(
         `HTTP 状态码: ${response.statusCode}`
     );
 
     console.log(
-        `加密响应体: ${response.body}`
+        `[iios] 加密响应长度：${String(response.body || "").length}`
     );
+
+    if (
+        response.statusCode === 401 ||
+        response.statusCode === 403
+    ) {
+        throw new Error(
+            `登录凭证已失效（HTTP ${response.statusCode}），请重新打开 iios.fun 获取凭证`
+        );
+    }
 
     console.log(
         "4/4 解密服务器响应……"
@@ -1039,14 +1250,14 @@ function finish(title, message, detail) {
     } catch (error) {
         console.log(
             `响应解密失败：${
-                formatError(error)
+                sanitizeText(formatError(error), 160)
             }`
         );
     }
 
     if (plaintext) {
         console.log(
-            `解密结果: ${plaintext}`
+            `[iios] 响应解密成功（长度 ${String(plaintext).length}）`
         );
 
         let parsed;
@@ -1057,38 +1268,58 @@ function finish(title, message, detail) {
             parsed = null;
         }
 
-        const message =
+        const points =
             parsed &&
-            (parsed.message || parsed.msg)
-                ? parsed.message || parsed.msg
-                : parsed &&
-                  parsed.result &&
-                  parsed.result.points != null
-                ? `签到成功，获得 ${
-                    parsed.result.points
-                } 积分`
-                : plaintext;
+            parsed.result &&
+            parsed.result.points != null
+                ? parsed.result.points
+                : null;
+        const serverMessage =
+            parsed && (parsed.message || parsed.msg)
+                ? String(parsed.message || parsed.msg)
+                : "";
+        const message =
+            points != null
+                ? `签到成功，获得 ${points} 积分`
+                : serverMessage || String(plaintext);
+        const alreadySigned =
+            /已签到|已经签到|重复签到|请勿重复/.test(message);
+        const authExpired =
+            /未登录|登录失效|凭证失效|unauthorized/i.test(message);
+        const success =
+            response.statusCode === 200 &&
+            (
+                points != null ||
+                (parsed && parsed.success === true) ||
+                (parsed && parsed.code === 0) ||
+                /签到成功|操作成功/.test(message)
+            );
+        const title = authExpired
+            ? "登录凭证失效"
+            : alreadySigned
+            ? "今日已签到"
+            : success
+            ? "签到成功"
+            : response.statusCode === 200
+            ? "请求完成"
+            : `HTTP ${response.statusCode}`;
 
         finish(
-            response.statusCode === 200
-                ? "请求完成"
-                : `HTTP ${
-                    response.statusCode
-                }`,
-            message,
+            title,
+            sanitizeText(message, 200),
             ""
         );
     } else {
         finish(
             `HTTP ${response.statusCode}`,
             "请求已返回，但暂时无法解密",
-            `原始响应：${response.body}`
+            "请稍后重试；日志中未输出原始加密响应。"
         );
     }
 })().catch(error => {
     finish(
         "运行失败",
-        formatError(error),
+        sanitizeText(formatError(error), 220),
         ""
     );
 });

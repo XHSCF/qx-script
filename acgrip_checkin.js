@@ -8,7 +8,11 @@
  * 2. 再把本脚本添加到 QX 定时任务
  */
 
+const SCRIPT_VERSION = "2026.07.19-v2";
+console.log(`[Anime字幕论坛] 脚本版本：${SCRIPT_VERSION}`);
 const COOKIE_KEY = "acgrip_cookie";
+const MAX_NETWORK_RETRIES = 1;
+const RETRY_BASE_DELAY_MS = 1200;
 
 const PAGE_URL =
   "https://bbs.acgrip.com/dsu_paulsign-sign.html";
@@ -22,14 +26,13 @@ const USER_AGENT =
   "Version/26.5 Mobile/15E148 Safari/604.1";
 
 const cookie = $prefs.valueForKey(COOKIE_KEY);
+let finished = false;
 
 if (!cookie) {
-  $notify(
-    "Anime字幕论坛签到",
+  finish(
     "缺少 Cookie",
     `请先把论坛完整 Cookie 写入：${COOKIE_KEY}`
   );
-  $done();
 } else {
   fetchSignPage();
 }
@@ -49,7 +52,7 @@ function fetchSignPage() {
     },
   };
 
-  $task.fetch(request).then(
+  fetchWithRetry(request, "签到页").then(
     (response) => {
       const status = response.statusCode;
       const html = response.body || "";
@@ -60,6 +63,14 @@ function fetchSignPage() {
         finish(
           "登录状态异常",
           `签到页返回 ${status}，Cookie 可能已经失效。`
+        );
+        return;
+      }
+
+      if (status < 200 || status >= 300) {
+        finish(
+          "签到页响应异常",
+          `HTTP ${status}，请稍后再试。`
         );
         return;
       }
@@ -97,7 +108,7 @@ function fetchSignPage() {
           !html.includes("每日签到");
 
         console.log(
-          `[Anime字幕论坛] 签到页片段：${html.slice(0, 1200)}`
+          `[Anime字幕论坛] 未找到 formhash，页面长度：${html.length}`
         );
 
         finish(
@@ -111,16 +122,14 @@ function fetchSignPage() {
         return;
       }
 
-      console.log(
-        `[Anime字幕论坛] 已取得 formhash：${formhash}`
-      );
+      console.log("[Anime字幕论坛] 已取得动态 formhash");
 
       submitSign(formhash);
     },
     (error) => {
       finish(
         "签到页请求失败",
-        stringifyError(error)
+        sanitizeText(stringifyError(error), 160)
       );
     }
   );
@@ -152,7 +161,7 @@ function submitSign(formhash) {
     body,
   };
 
-  $task.fetch(request).then(
+  fetchWithRetry(request, "签到接口").then(
     (response) => {
       const status = response.statusCode;
       const html = response.body || "";
@@ -163,13 +172,21 @@ function submitSign(formhash) {
       );
 
       console.log(
-        `[Anime字幕论坛] 签到返回：${text.slice(0, 500)}`
+        `[Anime字幕论坛] 签到响应长度：${html.length}`
       );
 
       if (status === 401 || status === 403) {
         finish(
           "登录状态异常",
           `签到接口返回 ${status}，Cookie 可能已经失效。`
+        );
+        return;
+      }
+
+      if (status < 200 || status >= 300) {
+        finish(
+          "签到接口响应异常",
+          `HTTP ${status}，请稍后再试。`
         );
         return;
       }
@@ -221,7 +238,7 @@ function submitSign(formhash) {
       } else {
         finish(
           "签到结果未知",
-          text.slice(0, 250) ||
+          sanitizeText(text, 250) ||
             `HTTP ${status}，服务器未返回可识别内容。`
         );
       }
@@ -229,7 +246,7 @@ function submitSign(formhash) {
     (error) => {
       finish(
         "签到请求失败",
-        stringifyError(error)
+        sanitizeText(stringifyError(error), 160)
       );
     }
   );
@@ -293,7 +310,60 @@ function stringifyError(error) {
   }
 }
 
+function fetchWithRetry(request, label, attempt) {
+  const currentAttempt = attempt || 0;
+
+  return $task.fetch(request).then(
+    response => {
+      const status = Number(response.statusCode || 0);
+
+      if (
+        currentAttempt < MAX_NETWORK_RETRIES &&
+        (status === 429 || status >= 500)
+      ) {
+        return waitBeforeRetry(label, currentAttempt, `HTTP ${status}`)
+          .then(() => fetchWithRetry(request, label, currentAttempt + 1));
+      }
+
+      return response;
+    },
+    error => {
+      if (currentAttempt < MAX_NETWORK_RETRIES) {
+        return waitBeforeRetry(label, currentAttempt, "网络错误")
+          .then(() => fetchWithRetry(request, label, currentAttempt + 1));
+      }
+
+      return Promise.reject(error);
+    }
+  );
+}
+
+function waitBeforeRetry(label, attempt, reason) {
+  const delay =
+    RETRY_BASE_DELAY_MS * (attempt + 1) +
+    Math.floor(Math.random() * 400);
+
+  console.log(
+    `[Anime字幕论坛] ${label}${reason}，${delay}ms 后重试一次`
+  );
+
+  return new Promise(resolve => setTimeout(resolve, delay));
+}
+
+function sanitizeText(value, maxLength) {
+  return String(value || "")
+    .replace(/Basic\s+[A-Za-z0-9+/=._-]+/gi, "Basic <已隐藏>")
+    .replace(/(cookie|authorization|token)(\s*[:=]\s*)[^\s,;]+/gi, "$1$2<已隐藏>")
+    .slice(0, maxLength || 200);
+}
+
 function finish(subtitle, message) {
+  if (finished) {
+    return;
+  }
+
+  finished = true;
+
   $notify(
     "Anime字幕论坛签到",
     subtitle,
