@@ -13,6 +13,16 @@
 
 `APNs.list` 是 Quantumult X 的 Apple APNs 分流规则，与签到脚本相互独立。
 
+## 分流规则
+
+`Proxy.list` 是基于 ConnersHua/RuleGo 的个人精简版全球代理规则。它删除了已经交给独立 Telegram、OpenAI/ChatGPT 策略处理的重复规则，并清理了源列表内部的完全重复项。
+
+Quantumult X 远程分流示例：
+
+```ini
+https://raw.githubusercontent.com/XHSCF/qx-script/main/Proxy.list, tag=全球加速, force-policy=全球加速, update-interval=604800, opt-parser=true, enabled=true
+```
+
 ## 安装
 
 ### NodeSeek、科学刀和 ACGRIP
