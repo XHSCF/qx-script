@@ -23,6 +23,12 @@ Quantumult X 远程分流示例：
 https://raw.githubusercontent.com/XHSCF/qx-script/main/Proxy.list, tag=全球加速, force-policy=全球加速, update-interval=604800, opt-parser=true, enabled=true
 ```
 
+`Streaming.list` 是基于 ddgksf2013/Filter 的个人精简版国际流媒体规则。它删除了已经交给独立 YouTube、TikTok 策略处理的重复项，并保留 Apple TV、Apple Music TV 及 TikTok 补充规则。
+
+```ini
+https://raw.githubusercontent.com/XHSCF/qx-script/main/Streaming.list, tag=国际媒体, force-policy=国际媒体, update-interval=604800, opt-parser=true, enabled=true
+```
+
 ## 安装
 
 ### NodeSeek、科学刀和 ACGRIP
