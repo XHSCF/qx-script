@@ -1,7 +1,7 @@
 # Proxy (XHSCF customized)
 # SOURCE: https://github.com/ConnersHua/RuleGo/blob/master/Surge/Ruleset/Proxy.list
 # SOURCE-SHA: f89bce9a644cc5a0ea15a979db429e6b67b4cee9
-# Telegram/OpenAI rules already handled by dedicated policies are removed.
+# Rules already handled by dedicated Telegram, OpenAI, YouTube, X-Twitter, GitHub, Apple, and Streaming policies are removed.
 DOMAIN-SUFFIX,500px.com
 DOMAIN-SUFFIX,9cache.com
 DOMAIN-SUFFIX,9gag.com
@@ -80,7 +80,6 @@ DOMAIN-SUFFIX,generated.photos
 DOMAIN-SUFFIX,genius.com
 DOMAIN-SUFFIX,getsync.com
 DOMAIN-SUFFIX,gfw.report
-DOMAIN-SUFFIX,git.io
 DOMAIN-SUFFIX,githack.com
 DOMAIN-SUFFIX,gitlab.com
 DOMAIN-SUFFIX,glarity.app
@@ -127,7 +126,6 @@ DOMAIN-SUFFIX,moon.fm
 DOMAIN-SUFFIX,mubi.com
 DOMAIN-SUFFIX,myspace.com
 DOMAIN-SUFFIX,myspacecdn.com
-DOMAIN-SUFFIX,naver.com
 DOMAIN-SUFFIX,nbcnews.com
 DOMAIN-SUFFIX,neowin.net
 DOMAIN-SUFFIX,netsarang.com
@@ -258,7 +256,6 @@ DOMAIN,d3c33hcgiwev3.cloudfront.net
 DOMAIN,payments-jp.amazon.com
 DOMAIN,s3-ap-northeast-1.amazonaws.com
 DOMAIN,s3-ap-southeast-2.amazonaws.com
-DOMAIN,s3-ap-southeast-1.amazonaws.com
 DOMAIN,s3.eu-central-1.amazonaws.com
 # > Alphabet
 # DOMAIN-SUFFIX,ampproject.org
@@ -266,14 +263,12 @@ DOMAIN-SUFFIX,apigee.com
 DOMAIN-SUFFIX,appspot.com
 DOMAIN-SUFFIX,blogger.com
 DOMAIN-SUFFIX,gvt0.com
-DOMAIN-SUFFIX,gvt1.com
 DOMAIN-SUFFIX,gvt3.com
 DOMAIN-SUFFIX,tenor.com
 DOMAIN-SUFFIX,xn--ngstr-lra8j.com
 DOMAIN-KEYWORD,google
 DOMAIN-KEYWORD,.blogspot.
 # > Apple
-DOMAIN,testflight.apple.com
 # > Automattic
 DOMAIN-SUFFIX,gravatar.com
 DOMAIN-SUFFIX,tumblr.com
@@ -383,18 +378,12 @@ DOMAIN-SUFFIX,whatsapp.net
 DOMAIN-KEYWORD,.facebook.
 # > Microsoft
 DOMAIN-SUFFIX,aka.ms
-DOMAIN-SUFFIX,github.blog
-DOMAIN-SUFFIX,github.com
-DOMAIN-SUFFIX,github.io
-DOMAIN-SUFFIX,githubassets.com
-DOMAIN-SUFFIX,githubusercontent.com
 DOMAIN-SUFFIX,onedrive.live.com
 DOMAIN-SUFFIX,streaming.mediaservices.windows.net
 DOMAIN,assets1.xboxlive.com
 DOMAIN,assets2.xboxlive.com
 DOMAIN,az416426.vo.msecnd.net
 DOMAIN,az668014.vo.msecnd.net
-DOMAIN,github.global.ssl.fastly.net
 # > OpenAI（由独立 OpenAI/ChatGPT 规则处理）
 # > Pinterest
 DOMAIN-SUFFIX,pinimg.com
@@ -448,19 +437,7 @@ DOMAIN-SUFFIX,wikiversity.org
 DOMAIN-SUFFIX,wikivoyage.org
 DOMAIN-SUFFIX,wiktionary.org
 # > xAI
-DOMAIN-SUFFIX,grok.com
-DOMAIN-SUFFIX,periscope.tv
-DOMAIN-SUFFIX,pscp.tv
-DOMAIN-SUFFIX,t.co
-DOMAIN-SUFFIX,tweetdeck.com
-DOMAIN-SUFFIX,twimg.co
-DOMAIN-SUFFIX,twimg.com
-DOMAIN-SUFFIX,twitpic.com
-DOMAIN-SUFFIX,twitter.com
-DOMAIN-SUFFIX,twitter.jp
-DOMAIN-SUFFIX,vine.co
 DOMAIN-SUFFIX,x.ai
-DOMAIN-SUFFIX,x.com
 # > Yahoo
 DOMAIN-SUFFIX,yahoo.com
 DOMAIN-SUFFIX,yimg.com
@@ -499,15 +476,6 @@ DOMAIN,merchant-rating.alibaba.com
 DOMAIN-SUFFIX,go.dev
 DOMAIN-SUFFIX,golang.org
 # ---(Apple)---
-DOMAIN-SUFFIX,appsto.re // Apple URL Shortener
-DOMAIN-SUFFIX,smoot.apple.com // Spotlight
-DOMAIN,amp-api.podcasts.apple.com // Podcasts
-DOMAIN,beta.music.apple.com // Apple Music Web
-DOMAIN,books.itunes.apple.com // iBooks Store download
-DOMAIN,facetime.apple.com // FaceTime Links
-DOMAIN,lookup-api.apple.com // Look Up
-DOMAIN,radio.itunes.apple.com // Apple Music Radio
-DOMAIN,apple-relay.apple.com // Apple Intelligence
 DOMAIN,apple-relay.cloudflare.com
 DOMAIN,apple-relay.fastly-edge.com
 DOMAIN,cp4.cloudflare.com
@@ -515,19 +483,7 @@ DOMAIN,cp4.cloudflare.com
 DOMAIN,c.mi.com
 DOMAIN,new.c.mi.com
 # > Web Preview
-DOMAIN,apps.apple.com
-DOMAIN,books.apple.com
-DOMAIN,itunes.apple.com
-DOMAIN,tv.apple.com
 # > News
-DOMAIN,gateway.icloud.com
-DOMAIN-SUFFIX,apple.news
-DOMAIN,news-assets.apple.com
-DOMAIN,news-client.apple.com
-DOMAIN,news-client-search.apple.com
-DOMAIN,news-edge.apple.com
-DOMAIN,news-events.apple.com
-DOMAIN,apple.comscoreresearch.com
 # ------
 # > Microsoft
 DOMAIN-SUFFIX,bing.com

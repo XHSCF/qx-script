@@ -15,7 +15,7 @@
 
 ## 分流规则
 
-`Proxy.list` 是基于 ConnersHua/RuleGo 的个人精简版全球代理规则。它删除了已经交给独立 Telegram、OpenAI/ChatGPT 策略处理的重复规则，并清理了源列表内部的完全重复项。
+`Proxy.list` 是基于 ConnersHua/RuleGo 的个人精简版全球代理规则。它删除了已经交给独立 Telegram、OpenAI/ChatGPT、YouTube、X/Twitter、GitHub、Apple 和 Streaming 策略处理的不必要重复，并清理了源列表内部的完全重复项。`google`、Fastly 等通用宽规则继续作为后置兜底。
 
 Quantumult X 远程分流示例：
 
@@ -23,7 +23,7 @@ Quantumult X 远程分流示例：
 https://raw.githubusercontent.com/XHSCF/qx-script/main/Proxy.list, tag=全球加速, force-policy=全球加速, update-interval=604800, opt-parser=true, enabled=true
 ```
 
-`Streaming.list` 是基于 ddgksf2013/Filter 的个人精简版国际流媒体规则。它删除了已经交给独立 YouTube、TikTok 策略处理的重复项，并保留 Apple TV、Apple Music TV 及 TikTok 补充规则。
+`Streaming.list` 是基于 ddgksf2013/Filter 的个人精简版国际流媒体规则。它删除了已经交给独立 YouTube、TikTok 策略处理的重复项，并保留 Apple TV、Apple Music TV、哔哩哔哩国际版及 TikTok 补充规则。这里与 Apple、国内影音的部分交叉是有意的，应让本规则排在它们之前。
 
 ```ini
 https://raw.githubusercontent.com/XHSCF/qx-script/main/Streaming.list, tag=国际媒体, force-policy=国际媒体, update-interval=604800, opt-parser=true, enabled=true
